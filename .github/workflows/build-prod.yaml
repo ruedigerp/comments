@@ -61,6 +61,7 @@ jobs:
             ghcr.io/ruedigerp/comments:latest
           build-args: |
             VERSION=${{ env.VERSION }}
+            STAGE=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max          
 
