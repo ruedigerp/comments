@@ -268,42 +268,94 @@ window.CommentWidget = (function() {
             
             if (response.ok) {
                 const comments = await response.json();
-                const activeComments = comments.filter(comment => comment.active === true);
+                
+                // Sicherstellen, dass comments ein Array ist
+                let commentsArray = [];
+                if (Array.isArray(comments)) {
+                    commentsArray = comments;
+                } else if (comments && comments.length !== undefined) {
+                    // Falls es ein array-ähnliches Objekt ist
+                    commentsArray = Array.from(comments);
+                } else if (comments === null || comments === undefined) {
+                    // Null oder undefined -> leeres Array
+                    commentsArray = [];
+                } else {
+                    console.warn('Unerwartetes comments Format:', comments);
+                    commentsArray = [];
+                }
+                
+                // Nur aktive Kommentare filtern
+                const activeComments = commentsArray.filter(comment => 
+                    comment && comment.active === true
+                );
+                
                 displayComments(activeComments, commentsContainer);
             } else {
-                commentsContainer.innerHTML = '<div class="comments-loading">Fehler beim Laden der Kommentare</div>';
+                console.error('API Response Error:', response.status, response.statusText);
+                commentsContainer.innerHTML = '<div class="comments-loading">Fehler beim Laden der Kommentare (HTTP ' + response.status + ')</div>';
             }
         } catch (error) {
             console.error('Fehler beim Laden der Kommentare:', error);
-            commentsContainer.innerHTML = '<div class="comments-loading">Verbindungsfehler</div>';
+            commentsContainer.innerHTML = '<div class="comments-loading">Verbindungsfehler: ' + error.message + '</div>';
         }
     }
 
     // Kommentare anzeigen
     function displayComments(comments, container) {
-        if (!comments || comments.length === 0) {
+        // Robuste Array-Prüfung
+        if (!Array.isArray(comments) || comments.length === 0) {
             container.innerHTML = '<div class="comments-empty">Noch keine Kommentare vorhanden. Sei der erste! 🚀</div>';
             return;
         }
 
-        comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        // Nach Datum sortieren (neueste zuerst) - mit Fehlerbehandlung
+        const sortedComments = comments.sort((a, b) => {
+            try {
+                const dateA = new Date(a.created_at);
+                const dateB = new Date(b.created_at);
+                
+                // Prüfen ob Datum gültig ist
+                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+                    return 0; // Keine Sortierung wenn Datum ungültig
+                }
+                
+                return dateB - dateA;
+            } catch (error) {
+                console.warn('Fehler beim Sortieren der Kommentare:', error);
+                return 0;
+            }
+        });
 
-        const commentsHTML = comments.map(comment => {
-            const date = new Date(comment.created_at).toLocaleDateString('de-DE', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+        const commentsHTML = sortedComments.map(comment => {
+            // Robuste Daten-Extraktion
+            const username = comment.username || 'Unbekannt';
+            const text = comment.text || '';
+            
+            let formattedDate = 'Datum unbekannt';
+            try {
+                if (comment.created_at) {
+                    const date = new Date(comment.created_at);
+                    if (!isNaN(date.getTime())) {
+                        formattedDate = date.toLocaleDateString('de-DE', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('Fehler beim Formatieren des Datums:', error);
+            }
 
             return `
                 <div class="comment-item">
                     <div class="comment-header">
-                        <span class="comment-author">${escapeHtml(comment.username)}</span>
-                        <span class="comment-date">${date}</span>
+                        <span class="comment-author">${escapeHtml(username)}</span>
+                        <span class="comment-date">${formattedDate}</span>
                     </div>
-                    <div class="comment-text">${escapeHtml(comment.text)}</div>
+                    <div class="comment-text">${escapeHtml(text)}</div>
                 </div>
             `;
         }).join('');
@@ -459,3 +511,25 @@ window.CommentWidget = (function() {
 
 // Debug info
 console.log('CommentWidget v' + CommentWidget.version + ' loaded from: ' + CommentWidget.config.apiUrl);
+
+// Debug-Funktion für API-Antworten
+window.CommentWidgetDebug = {
+    testAPI: async function(postId) {
+        console.log('🔍 Testing API for postId:', postId);
+        try {
+            const response = await fetch(`${CommentWidget.config.apiUrl}?post_id=${encodeURIComponent(postId)}&include_inactive=false`);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+            
+            const data = await response.json();
+            console.log('📦 Response data:', data);
+            console.log('📦 Data type:', typeof data);
+            console.log('📦 Is Array:', Array.isArray(data));
+            
+            return data;
+        } catch (error) {
+            console.error('❌ API Test Error:', error);
+            return null;
+        }
+    }
+};
