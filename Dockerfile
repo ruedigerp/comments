@@ -35,6 +35,7 @@ RUN addgroup -g 1001 appgroup && \
 # Binary kopieren
 COPY --from=builder /app/server /app/server
 COPY --from=builder /app/static /app/static
+COPY --from=builder /app/templates /app/templates
 
 # Ownership an appuser geben
 RUN chown -R appuser:appgroup /app
