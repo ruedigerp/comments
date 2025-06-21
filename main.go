@@ -1978,11 +1978,11 @@ func main() {
 	// Router einrichten
 	r := mux.NewRouter()
 
-	// JavaScript Widget Template
-	r.HandleFunc("/js/comment-widget.js", handler.JSWidgetHandler).Methods("GET")
-
 	// Static Files ZUERST registrieren
 	setupStaticRoutes(r)
+
+	// JavaScript Widget Template
+	r.HandleFunc("/js/comment-widget.js", handler.JSWidgetHandler).Methods("GET")
 
 	// Health Check Routes ZUERST
 	setupHealthRoutes(r, commentService)
