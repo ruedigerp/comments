@@ -57,7 +57,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghghcr.io/ruedigerp/comments:${{ env.VERSION }}
+            ghcr.io/ruedigerp/comments:${{ env.VERSION }}
             ghcr.io/ruedigerp/comments:latest
           build-args: |
             VERSION=${{ env.VERSION }}
