@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"text/template"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -43,6 +46,22 @@ type AuthConfig struct {
 	AdminToken string
 	Enabled    bool
 }
+
+// Template-Daten Struktur
+type JSWidgetTemplateData struct {
+	ApiUrl  string
+	Version string
+	Stage   string
+}
+
+// Template Cache für bessere Performance
+type TemplateCache struct {
+	template     *template.Template
+	lastModified time.Time
+	mutex        sync.RWMutex
+}
+
+var jsTemplateCache = &TemplateCache{}
 
 var (
 	version   = "dev"         // Default-Wert falls nicht gesetzt
@@ -1637,6 +1656,203 @@ func setupHealthRoutes(r *mux.Router, commentService *CommentService) {
 	r.HandleFunc("/metrics", metricsHandler(commentService)).Methods("GET")
 }
 
+// JavaScript Widget Handler mit Datei-Template
+func (h *CommentHandler) JSWidgetHandler(w http.ResponseWriter, r *http.Request) {
+	// Template laden (mit Caching)
+	tmpl, err := loadJSTemplate()
+	if err != nil {
+		log.Printf("Template-Fehler: %v", err)
+		http.Error(w, "Template nicht verfügbar", http.StatusInternalServerError)
+		return
+	}
+
+	// API-URL dynamisch bestimmen
+	apiUrl := determineApiUrl(r)
+
+	// Template-Daten
+	data := JSWidgetTemplateData{
+		ApiUrl:  apiUrl,
+		Version: version,
+		Stage:   stage,
+	}
+
+	// Korrekte Headers für JavaScript
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=1800") // 30 Minuten Cache
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+
+	// Template ausführen
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Template-Ausführung fehlgeschlagen: %v", err)
+		http.Error(w, "Template-Ausführung fehlgeschlagen", http.StatusInternalServerError)
+		return
+	}
+}
+
+// Template laden mit Caching und Hot-Reload im Development
+func loadJSTemplate() (*template.Template, error) {
+	templatePath := getEnv("JS_TEMPLATE_PATH", "./templates/comment-widget.js.tmpl")
+
+	// Datei-Info abrufen
+	info, err := os.Stat(templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("template-datei nicht gefunden: %s", templatePath)
+	}
+
+	jsTemplateCache.mutex.RLock()
+
+	// Cache prüfen (nur in Produktion cachen)
+	if stage == "production" && jsTemplateCache.template != nil &&
+		jsTemplateCache.lastModified.Equal(info.ModTime()) {
+		defer jsTemplateCache.mutex.RUnlock()
+		return jsTemplateCache.template, nil
+	}
+
+	jsTemplateCache.mutex.RUnlock()
+
+	// Template neu laden
+	jsTemplateCache.mutex.Lock()
+	defer jsTemplateCache.mutex.Unlock()
+
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("template-parsing fehlgeschlagen: %w", err)
+	}
+
+	// Cache aktualisieren
+	jsTemplateCache.template = tmpl
+	jsTemplateCache.lastModified = info.ModTime()
+
+	log.Printf("✅ JavaScript Template geladen: %s", templatePath)
+	return tmpl, nil
+}
+
+// API-URL aus verschiedenen Quellen bestimmen
+func determineApiUrl(r *http.Request) string {
+	// Priorität der URL-Bestimmung:
+
+	// 1. Environment Variable (höchste Priorität)
+	if envUrl := getEnv("PUBLIC_API_URL", ""); envUrl != "" {
+		return envUrl
+	}
+
+	// 2. Domain aus Environment + Schema detection
+	if domain := getEnv("DOMAIN", ""); domain != "" {
+		scheme := "https"
+		if r.TLS == nil {
+			scheme = "http"
+		}
+		return fmt.Sprintf("%s://%s/api/comments", scheme, domain)
+	}
+
+	// 3. Aus Request-Host ableiten
+	scheme := "https"
+	if r.TLS == nil {
+		scheme = "http"
+	}
+	host := r.Host
+	return fmt.Sprintf("%s://%s/api/comments", scheme, host)
+}
+
+// Setup-Script für Template-Verzeichnis
+func setupTemplateDirectory() error {
+	templateDir := "./templates"
+
+	// Verzeichnis erstellen falls nicht vorhanden
+	if err := os.MkdirAll(templateDir, 0755); err != nil {
+		return fmt.Errorf("template-verzeichnis konnte nicht erstellt werden: %w", err)
+	}
+
+	templatePath := filepath.Join(templateDir, "comment-widget.js.tmpl")
+
+	// Prüfen ob Template-Datei existiert
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		log.Printf("⚠️  Template-Datei nicht gefunden: %s", templatePath)
+		log.Println("💡 Bitte erstelle die Datei oder setze JS_TEMPLATE_PATH Environment Variable")
+		return fmt.Errorf("template-datei fehlt: %s", templatePath)
+	}
+
+	log.Printf("✅ Template-Datei gefunden: %s", templatePath)
+	return nil
+}
+
+// Template-Validator für Syntax-Prüfung
+func validateJSTemplate() error {
+	templatePath := getEnv("JS_TEMPLATE_PATH", "./templates/comment-widget.js.tmpl")
+
+	// Template parsen (ohne Ausführung)
+	_, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return fmt.Errorf("template-syntax-fehler in %s: %w", templatePath, err)
+	}
+
+	// Test-Daten für Validation
+	testData := JSWidgetTemplateData{
+		ApiUrl:  "https://example.com/api/comments",
+		Version: "1.0.0",
+		Stage:   "test",
+	}
+
+	// Template mit Test-Daten ausführen (Dry-Run)
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return err
+	}
+
+	// In Dummy-Writer ausführen
+	err = tmpl.Execute(io.Discard, testData)
+	if err != nil {
+		return fmt.Errorf("template-ausführung fehlgeschlagen: %w", err)
+	}
+
+	log.Printf("✅ Template-Validation erfolgreich: %s", templatePath)
+	return nil
+}
+
+// Development Helper: Template Hot-Reload
+func enableTemplateHotReload() {
+	if stage != "development" {
+		return
+	}
+
+	templatePath := getEnv("JS_TEMPLATE_PATH", "./templates/comment-widget.js.tmpl")
+
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+
+		var lastModTime time.Time
+
+		for range ticker.C {
+			info, err := os.Stat(templatePath)
+			if err != nil {
+				continue
+			}
+
+			if !lastModTime.Equal(info.ModTime()) {
+				log.Printf("🔄 Template-Datei geändert, Cache wird geleert...")
+
+				jsTemplateCache.mutex.Lock()
+				jsTemplateCache.template = nil
+				jsTemplateCache.lastModified = time.Time{}
+				jsTemplateCache.mutex.Unlock()
+
+				// Validation
+				if err := validateJSTemplate(); err != nil {
+					log.Printf("❌ Template-Validation fehlgeschlagen: %v", err)
+				} else {
+					log.Printf("✅ Template erfolgreich neu geladen")
+				}
+
+				lastModTime = info.ModTime()
+			}
+		}
+	}()
+
+	log.Println("🔥 Template Hot-Reload aktiviert (Development Mode)")
+}
+
 func main() {
 	// Environment Variablen lesen
 	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
@@ -1659,10 +1875,26 @@ func main() {
 	}
 	log.Println("✅ Redis connection successful")
 
+	// Template-Setup
+	if err := setupTemplateDirectory(); err != nil {
+		log.Fatal("Template-Setup fehlgeschlagen:", err)
+	}
+
+	// Template-Validation
+	if err := validateJSTemplate(); err != nil {
+		log.Fatal("Template-Validation fehlgeschlagen:", err)
+	}
+
+	// Hot-Reload im Development Mode
+	enableTemplateHotReload()
+
 	handler := NewCommentHandler(commentService)
 
 	// Router einrichten
 	r := mux.NewRouter()
+
+	// JavaScript Widget Template
+	r.HandleFunc("/js/comment-widget.js", handler.JSWidgetHandler).Methods("GET")
 
 	// Static Files ZUERST registrieren
 	setupStaticRoutes(r)
@@ -1721,6 +1953,30 @@ func main() {
 		fmt.Printf("🔑 Admin Token: %s\n", auth.AdminToken)
 		fmt.Println("💡 Use: Authorization: Bearer <token> or X-Admin-Token: <token>")
 	}
-
+	log.Printf("📁 Template-Pfad: %s", getEnv("JS_TEMPLATE_PATH", "./templates/comment-widget.js.tmpl"))
+	log.Printf("🎯 Template-Modus: %s", stage)
 	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
+}
+
+// Template-Info Handler für Debugging
+func (h *CommentHandler) TemplateInfoHandler(w http.ResponseWriter, r *http.Request) {
+	templatePath := getEnv("JS_TEMPLATE_PATH", "./templates/comment-widget.js.tmpl")
+
+	info, err := os.Stat(templatePath)
+	if err != nil {
+		http.Error(w, "Template-Info nicht verfügbar", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"template_path":   templatePath,
+		"last_modified":   info.ModTime().Format(time.RFC3339),
+		"size_bytes":      info.Size(),
+		"cache_enabled":   stage == "production",
+		"hot_reload":      stage == "development",
+		"current_api_url": determineApiUrl(r),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
