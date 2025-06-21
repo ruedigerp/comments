@@ -893,6 +893,10 @@ func (h *CommentHandler) AdminPanelHandler(w http.ResponseWriter, r *http.Reques
             margin-left: auto;
         }
 
+        .logout-btn {
+            background: #dc3545 !important;
+        }
+
         .auto-refresh {
             display: flex;
             align-items: center;
@@ -918,6 +922,7 @@ func (h *CommentHandler) AdminPanelHandler(w http.ResponseWriter, r *http.Reques
                 <input type="password" id="adminToken" placeholder="Admin Token eingeben">
                 <button class="btn" onclick="authenticate()">🔑 Authentifizieren</button>
                 <button class="btn refresh-btn" onclick="loadComments()" disabled id="refreshBtn">🔄 Aktualisieren</button>
+                <button class="btn logout-btn" onclick="logout()">🚪 Abmelden</button>
                 <div class="auto-refresh">
                     <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
                     <label for="autoRefresh">Auto-Refresh (30s)</label>
@@ -978,371 +983,332 @@ func (h *CommentHandler) AdminPanelHandler(w http.ResponseWriter, r *http.Reques
     </div>
 
     <script>
-			// Verbessertes Token-Management für Admin Panel
-			let adminToken = '';
-			let allComments = [];
-			let autoRefreshInterval = null;
-			const API_BASE = '/api/comments';
+        // Token-Management und Admin Panel JavaScript
+        let adminToken = '';
+        let allComments = [];
+        let autoRefreshInterval = null;
+        const API_BASE = '/api/comments';
 
-			// Token aus verschiedenen Quellen laden
-			function loadTokenFromStorage() {
-					// 1. URL Parameter (höchste Priorität)
-					const urlParams = new URLSearchParams(window.location.search);
-					const urlToken = urlParams.get('token');
-					if (urlToken) {
-							adminToken = urlToken;
-							// Token in Input-Feld setzen
-							document.getElementById('adminToken').value = urlToken;
-							// URL-Parameter entfernen für Sicherheit
-							window.history.replaceState({}, document.title, window.location.pathname);
-							return urlToken;
-					}
+        // Token aus verschiedenen Quellen laden
+        function loadTokenFromStorage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+            if (urlToken) {
+                adminToken = urlToken;
+                document.getElementById('adminToken').value = urlToken;
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return urlToken;
+            }
 
-					// 2. Session Storage
-					const sessionToken = sessionStorage.getItem('adminToken');
-					if (sessionToken) {
-							adminToken = sessionToken;
-							document.getElementById('adminToken').value = sessionToken;
-							return sessionToken;
-					}
+            const sessionToken = sessionStorage.getItem('adminToken');
+            if (sessionToken) {
+                adminToken = sessionToken;
+                document.getElementById('adminToken').value = sessionToken;
+                return sessionToken;
+            }
 
-					// 3. Local Storage (weniger sicher, aber persistent)
-					const localToken = localStorage.getItem('adminToken');
-					if (localToken) {
-							adminToken = localToken;
-							document.getElementById('adminToken').value = localToken;
-							return localToken;
-					}
+            return null;
+        }
 
-					return null;
-			}
+        function saveTokenToStorage(token) {
+            adminToken = token;
+            sessionStorage.setItem('adminToken', token);
+        }
 
-			// Token speichern
-			function saveTokenToStorage(token) {
-					adminToken = token;
-					
-					// In Session Storage (sicher, nur für aktuelle Session)
-					sessionStorage.setItem('adminToken', token);
-					
-					// Optional: auch in Local Storage für Persistenz über Sessions hinweg
-					// localStorage.setItem('adminToken', token);
-			}
+        function clearTokenFromStorage() {
+            adminToken = '';
+            sessionStorage.removeItem('adminToken');
+            document.getElementById('adminToken').value = '';
+        }
 
-			// Token löschen
-			function clearTokenFromStorage() {
-					adminToken = '';
-					sessionStorage.removeItem('adminToken');
-					localStorage.removeItem('adminToken');
-					document.getElementById('adminToken').value = '';
-			}
+        function showMessage(message, type = 'error') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '<div class="' + type + '">' + message + '</div>';
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
 
-			function showMessage(message, type = 'error') {
-					const messageArea = document.getElementById('messageArea');
-					messageArea.innerHTML = '<div class="' + type + '">' + message + '</div>';
-					setTimeout(() => {
-							messageArea.innerHTML = '';
-					}, 5000);
-			}
+        function authenticate() {
+            const token = document.getElementById('adminToken').value.trim();
+            if (!token) {
+                showMessage('Bitte geben Sie einen Admin Token ein');
+                return;
+            }
+            
+            saveTokenToStorage(token);
+            enableAuthenticatedUI();
+            loadComments();
+        }
 
-			function authenticate() {
-					const token = document.getElementById('adminToken').value.trim();
-					if (!token) {
-							showMessage('Bitte geben Sie einen Admin Token ein');
-							return;
-					}
-					
-					// Token speichern und UI aktualisieren
-					saveTokenToStorage(token);
-					enableAuthenticatedUI();
-					
-					// Sofort Kommentare laden um Token zu validieren
-					loadComments();
-			}
+        function enableAuthenticatedUI() {
+            document.getElementById('refreshBtn').disabled = false;
+            const tokenInput = document.getElementById('adminToken');
+            tokenInput.style.borderColor = '#28a745';
+            tokenInput.style.backgroundColor = '#d4edda';
+        }
 
-			// UI für authentifizierten Zustand aktivieren
-			function enableAuthenticatedUI() {
-					document.getElementById('refreshBtn').disabled = false;
-					
-					// Visueller Hinweis dass authentifiziert
-					const tokenInput = document.getElementById('adminToken');
-					tokenInput.style.borderColor = '#28a745';
-					tokenInput.style.backgroundColor = '#d4edda';
-			}
+        function disableAuthenticatedUI() {
+            document.getElementById('refreshBtn').disabled = true;
+            document.getElementById('statsSection').style.display = 'none';
+            document.getElementById('filtersSection').style.display = 'none';
+            
+            const tokenInput = document.getElementById('adminToken');
+            tokenInput.style.borderColor = '#dc3545';
+            tokenInput.style.backgroundColor = '#f8d7da';
+            
+            document.getElementById('commentsContainer').innerHTML = 
+                '<div class="loading">Bitte authentifizieren Sie sich, um Kommentare zu laden</div>';
+        }
 
-			// UI für nicht-authentifizierten Zustand
-			function disableAuthenticatedUI() {
-					document.getElementById('refreshBtn').disabled = true;
-					document.getElementById('statsSection').style.display = 'none';
-					document.getElementById('filtersSection').style.display = 'none';
-					
-					const tokenInput = document.getElementById('adminToken');
-					tokenInput.style.borderColor = '#dc3545';
-					tokenInput.style.backgroundColor = '#f8d7da';
-					
-					document.getElementById('commentsContainer').innerHTML = 
-							'<div class="loading">Bitte authentifizieren Sie sich, um Kommentare zu laden</div>';
-			}
+        function logout() {
+            clearTokenFromStorage();
+            disableAuthenticatedUI();
+            
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                document.getElementById('autoRefresh').checked = false;
+            }
+            
+            showMessage('Abgemeldet', 'success');
+        }
 
-			async function apiCall(endpoint, options = {}) {
-					if (!adminToken) {
-							showMessage('Nicht authentifiziert');
-							disableAuthenticatedUI();
-							return null;
-					}
+        async function apiCall(endpoint, options = {}) {
+            if (!adminToken) {
+                showMessage('Nicht authentifiziert');
+                disableAuthenticatedUI();
+                return null;
+            }
 
-					const headers = {
-							'Authorization': 'Bearer ' + adminToken,
-							'Content-Type': 'application/json'
-					};
+            const headers = {
+                'Authorization': 'Bearer ' + adminToken,
+                'Content-Type': 'application/json'
+            };
 
-					if (options.headers) {
-							Object.assign(headers, options.headers);
-					}
+            if (options.headers) {
+                Object.assign(headers, options.headers);
+            }
 
-					try {
-							const response = await fetch(endpoint, { 
-									...options, 
-									headers: headers 
-							});
-							
-							if (response.status === 401) {
-									// Token ungültig
-									showMessage('Token ungültig oder abgelaufen. Bitte neu anmelden.', 'error');
-									clearTokenFromStorage();
-									disableAuthenticatedUI();
-									return null;
-							}
-							
-							if (!response.ok) {
-									const errorText = await response.text();
-									throw new Error('HTTP ' + response.status + ': ' + errorText);
-							}
+            try {
+                const response = await fetch(endpoint, { 
+                    ...options, 
+                    headers: headers 
+                });
+                
+                if (response.status === 401) {
+                    showMessage('Token ungültig oder abgelaufen. Bitte neu anmelden.', 'error');
+                    clearTokenFromStorage();
+                    disableAuthenticatedUI();
+                    return null;
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error('HTTP ' + response.status + ': ' + errorText);
+                }
 
-							return await response.json();
-					} catch (error) {
-							if (error.message.includes('401')) {
-									clearTokenFromStorage();
-									disableAuthenticatedUI();
-									showMessage('Authentifizierung fehlgeschlagen', 'error');
-							} else {
-									showMessage('API Fehler: ' + error.message);
-							}
-							return null;
-					}
-			}
+                return await response.json();
+            } catch (error) {
+                if (error.message.includes('401')) {
+                    clearTokenFromStorage();
+                    disableAuthenticatedUI();
+                    showMessage('Authentifizierung fehlgeschlagen', 'error');
+                } else {
+                    showMessage('API Fehler: ' + error.message);
+                }
+                return null;
+            }
+        }
 
-			async function loadComments() {
-					if (!adminToken) {
-							showMessage('Kein Token verfügbar');
-							return;
-					}
+        async function loadComments() {
+            if (!adminToken) {
+                showMessage('Kein Token verfügbar');
+                return;
+            }
 
-					document.getElementById('commentsContainer').innerHTML = '<div class="loading">Lade Kommentare...</div>';
-					
-					// Admin Info laden
-					const adminInfo = await apiCall(API_BASE + '/admin/info');
-					if (adminInfo) {
-							updateStats(adminInfo);
-							document.getElementById('statsSection').style.display = 'grid';
-							document.getElementById('filtersSection').style.display = 'flex';
-							enableAuthenticatedUI();
-							showMessage('Erfolgreich authentifiziert', 'success');
-					} else {
-							// Fehler beim Laden - Token wahrscheinlich ungültig
-							return;
-					}
+            document.getElementById('commentsContainer').innerHTML = '<div class="loading">Lade Kommentare...</div>';
+            
+            const adminInfo = await apiCall(API_BASE + '/admin/info');
+            if (adminInfo) {
+                updateStats(adminInfo);
+                document.getElementById('statsSection').style.display = 'grid';
+                document.getElementById('filtersSection').style.display = 'flex';
+                enableAuthenticatedUI();
+                showMessage('Erfolgreich authentifiziert', 'success');
+            } else {
+                return;
+            }
 
-					// Alle Kommentare laden (inklusive inaktive)
-					const comments = await apiCall(API_BASE + '?include_inactive=true');
-					if (comments) {
-							allComments = comments;
-							updatePostFilter();
-							filterComments();
-							showMessage('Kommentare erfolgreich geladen', 'success');
-					}
-			}
+            const comments = await apiCall(API_BASE + '?include_inactive=true');
+            if (comments) {
+                allComments = comments;
+                updatePostFilter();
+                filterComments();
+                showMessage('Kommentare erfolgreich geladen', 'success');
+            }
+        }
 
-			// Logout-Funktion
-			function logout() {
-					clearTokenFromStorage();
-					disableAuthenticatedUI();
-					
-					if (autoRefreshInterval) {
-							clearInterval(autoRefreshInterval);
-							autoRefreshInterval = null;
-							document.getElementById('autoRefresh').checked = false;
-					}
-					
-					showMessage('Abgemeldet', 'success');
-			}
+        function updateStats(adminInfo) {
+            document.getElementById('totalComments').textContent = adminInfo.total_comments;
+            document.getElementById('activeComments').textContent = adminInfo.active_comments;
+            document.getElementById('inactiveComments').textContent = adminInfo.inactive_comments;
+            
+            const uniquePosts = new Set(allComments.map(c => c.post_id)).size;
+            document.getElementById('uniquePosts').textContent = uniquePosts;
+        }
 
-			function updateStats(adminInfo) {
-					document.getElementById('totalComments').textContent = adminInfo.total_comments;
-					document.getElementById('activeComments').textContent = adminInfo.active_comments;
-					document.getElementById('inactiveComments').textContent = adminInfo.inactive_comments;
-					
-					// Unique Posts zählen
-					const uniquePosts = new Set(allComments.map(c => c.post_id)).size;
-					document.getElementById('uniquePosts').textContent = uniquePosts;
-			}
+        function updatePostFilter() {
+            const postFilter = document.getElementById('postFilter');
+            const uniquePosts = [...new Set(allComments.map(c => c.post_id))].sort();
+            
+            postFilter.innerHTML = '<option value="all">Alle Posts</option>';
+            uniquePosts.forEach(postId => {
+                const option = document.createElement('option');
+                option.value = postId;
+                option.textContent = postId;
+                postFilter.appendChild(option);
+            });
+        }
 
-			function updatePostFilter() {
-					const postFilter = document.getElementById('postFilter');
-					const uniquePosts = [...new Set(allComments.map(c => c.post_id))].sort();
-					
-					postFilter.innerHTML = '<option value="all">Alle Posts</option>';
-					uniquePosts.forEach(postId => {
-							const option = document.createElement('option');
-							option.value = postId;
-							option.textContent = postId;
-							postFilter.appendChild(option);
-					});
-			}
+        function filterComments() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const postFilter = document.getElementById('postFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
 
-			function filterComments() {
-					const statusFilter = document.getElementById('statusFilter').value;
-					const postFilter = document.getElementById('postFilter').value;
-					const sortFilter = document.getElementById('sortFilter').value;
+            let filteredComments = [...allComments];
 
-					let filteredComments = [...allComments];
+            if (statusFilter === 'active') {
+                filteredComments = filteredComments.filter(c => c.active);
+            } else if (statusFilter === 'inactive') {
+                filteredComments = filteredComments.filter(c => !c.active);
+            }
 
-					// Status Filter
-					if (statusFilter === 'active') {
-							filteredComments = filteredComments.filter(c => c.active);
-					} else if (statusFilter === 'inactive') {
-							filteredComments = filteredComments.filter(c => !c.active);
-					}
+            if (postFilter !== 'all') {
+                filteredComments = filteredComments.filter(c => c.post_id === postFilter);
+            }
 
-					// Post Filter
-					if (postFilter !== 'all') {
-							filteredComments = filteredComments.filter(c => c.post_id === postFilter);
-					}
+            filteredComments.sort((a, b) => {
+                const dateA = new Date(a.created_at);
+                const dateB = new Date(b.created_at);
+                return sortFilter === 'newest' ? dateB - dateA : dateA - dateB;
+            });
 
-					// Sortierung
-					filteredComments.sort((a, b) => {
-							const dateA = new Date(a.created_at);
-							const dateB = new Date(b.created_at);
-							return sortFilter === 'newest' ? dateB - dateA : dateA - dateB;
-					});
+            displayComments(filteredComments);
+        }
 
-					displayComments(filteredComments);
-			}
+        function displayComments(comments) {
+            const container = document.getElementById('commentsContainer');
+            
+            if (comments.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>Keine Kommentare gefunden</h3><p>Es gibt keine Kommentare, die den aktuellen Filtern entsprechen.</p></div>';
+                return;
+            }
 
-			function displayComments(comments) {
-					const container = document.getElementById('commentsContainer');
-					
-					if (comments.length === 0) {
-							container.innerHTML = '<div class="empty-state"><h3>Keine Kommentare gefunden</h3><p>Es gibt keine Kommentare, die den aktuellen Filtern entsprechen.</p></div>';
-							return;
-					}
+            const commentsHTML = comments.map(comment => {
+                const date = new Date(comment.created_at);
+                const formattedDate = date.toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
 
-					const commentsHTML = comments.map(comment => {
-							const date = new Date(comment.created_at);
-							const formattedDate = date.toLocaleDateString('de-DE', {
-									year: 'numeric',
-									month: 'short',
-									day: 'numeric',
-									hour: '2-digit',
-									minute: '2-digit'
-							});
+                return '<div class="comment-item ' + (comment.active ? 'active' : 'inactive') + '">' +
+                    '<div class="comment-header">' +
+                        '<div class="comment-meta">' +
+                            '<div class="comment-author">👤 ' + escapeHtml(comment.username) + '</div>' +
+                            '<div class="comment-email">📧 ' + escapeHtml(comment.mailaddress) + '</div>' +
+                            '<div class="comment-post-id">📝 ' + escapeHtml(comment.post_id) + '</div>' +
+                        '</div>' +
+                        '<div class="comment-actions">' +
+                            '<button class="status-toggle ' + (comment.active ? 'active' : 'inactive') + '" onclick="toggleCommentStatus(' + comment.id + ', ' + !comment.active + ')">' +
+                                (comment.active ? '✅ Aktiv' : '❌ Inaktiv') +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="comment-text">' + escapeHtml(comment.text) + '</div>' +
+                    '<div class="comment-footer">' +
+                        '<div class="comment-date">🕒 ' + formattedDate + '</div>' +
+                        '<div class="comment-id">ID: ' + comment.id + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
 
-							return '<div class="comment-item ' + (comment.active ? 'active' : 'inactive') + '">' +
-									'<div class="comment-header">' +
-											'<div class="comment-meta">' +
-													'<div class="comment-author">👤 ' + escapeHtml(comment.username) + '</div>' +
-													'<div class="comment-email">📧 ' + escapeHtml(comment.mailaddress) + '</div>' +
-													'<div class="comment-post-id">📝 ' + escapeHtml(comment.post_id) + '</div>' +
-											'</div>' +
-											'<div class="comment-actions">' +
-													'<button class="status-toggle ' + (comment.active ? 'active' : 'inactive') + '" onclick="toggleCommentStatus(' + comment.id + ', ' + !comment.active + ')">' +
-															(comment.active ? '✅ Aktiv' : '❌ Inaktiv') +
-													'</button>' +
-											'</div>' +
-									'</div>' +
-									'<div class="comment-text">' + escapeHtml(comment.text) + '</div>' +
-									'<div class="comment-footer">' +
-											'<div class="comment-date">🕒 ' + formattedDate + '</div>' +
-											'<div class="comment-id">ID: ' + comment.id + '</div>' +
-									'</div>' +
-							'</div>';
-					}).join('');
+            container.innerHTML = commentsHTML;
+        }
 
-					container.innerHTML = commentsHTML;
-			}
+        async function toggleCommentStatus(commentId, newStatus) {
+            const result = await apiCall(API_BASE + '/' + commentId + '/status', {
+                method: 'PUT',
+                body: JSON.stringify({ active: newStatus })
+            });
 
-			async function toggleCommentStatus(commentId, newStatus) {
-					const result = await apiCall(API_BASE + '/' + commentId + '/status', {
-							method: 'PUT',
-							body: JSON.stringify({ active: newStatus })
-					});
+            if (result) {
+                const comment = allComments.find(c => c.id === commentId);
+                if (comment) {
+                    comment.active = newStatus;
+                }
+                
+                showMessage('Kommentar ' + (newStatus ? 'aktiviert' : 'deaktiviert'), 'success');
+                filterComments();
+                
+                const adminInfo = await apiCall(API_BASE + '/admin/info');
+                if (adminInfo) {
+                    updateStats(adminInfo);
+                }
+            }
+        }
 
-					if (result) {
-							// Comment in der lokalen Liste aktualisieren
-							const comment = allComments.find(c => c.id === commentId);
-							if (comment) {
-									comment.active = newStatus;
-							}
-							
-							showMessage('Kommentar ' + (newStatus ? 'aktiviert' : 'deaktiviert'), 'success');
-							filterComments(); // Ansicht aktualisieren
-							
-							// Stats neu laden
-							const adminInfo = await apiCall(API_BASE + '/admin/info');
-							if (adminInfo) {
-									updateStats(adminInfo);
-							}
-					}
-			}
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(() => {
+                    if (adminToken) {
+                        loadComments();
+                    }
+                }, 30000);
+                showMessage('Auto-Refresh aktiviert (30s)', 'success');
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+                showMessage('Auto-Refresh deaktiviert', 'success');
+            }
+        }
 
-			function toggleAutoRefresh() {
-					const checkbox = document.getElementById('autoRefresh');
-					
-					if (checkbox.checked) {
-							autoRefreshInterval = setInterval(() => {
-									if (adminToken) {
-											loadComments();
-									}
-							}, 30000);
-							showMessage('Auto-Refresh aktiviert (30s)', 'success');
-					} else {
-							if (autoRefreshInterval) {
-									clearInterval(autoRefreshInterval);
-									autoRefreshInterval = null;
-							}
-							showMessage('Auto-Refresh deaktiviert', 'success');
-					}
-			}
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-			function escapeHtml(text) {
-					const div = document.createElement('div');
-					div.textContent = text;
-					return div.innerHTML;
-			}
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedToken = loadTokenFromStorage();
+            if (savedToken) {
+                enableAuthenticatedUI();
+                loadComments();
+            }
 
-			// Initialisierung beim Seitenload
-			document.addEventListener('DOMContentLoaded', function() {
-					// Token aus Storage laden
-					const savedToken = loadTokenFromStorage();
-					if (savedToken) {
-							enableAuthenticatedUI();
-							// Automatisch Kommentare laden wenn Token vorhanden
-							loadComments();
-					}
+            document.getElementById('adminToken').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticate();
+                }
+            });
 
-					// Enter-Taste im Token-Feld
-					document.getElementById('adminToken').addEventListener('keypress', function(e) {
-							if (e.key === 'Enter') {
-									authenticate();
-							}
-					});
-
-					// Cleanup beim Verlassen der Seite
-					window.addEventListener('beforeunload', function() {
-							if (autoRefreshInterval) {
-									clearInterval(autoRefreshInterval);
-							}
-					});
-			});`
+            window.addEventListener('beforeunload', function() {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+            });
+        });
+    </script>
+</body>
+</html>`
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
