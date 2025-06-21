@@ -259,12 +259,13 @@ window.CommentWidget = (function() {
         return div.innerHTML;
     }
 
-    // Kommentare laden (nur aktive)
+    // Kommentare laden (temporär: alle Kommentare anzeigen)
     async function loadComments(postId, container) {
         const commentsContainer = container.querySelector('.comments-container');
         
         try {
-            const response = await fetch(`${config.apiUrl}?post_id=${encodeURIComponent(postId)}&include_inactive=false`);
+            // TEMPORÄR: include_inactive=true zum Testen
+            const response = await fetch(`${config.apiUrl}?post_id=${encodeURIComponent(postId)}&include_inactive=true`);
             
             if (response.ok) {
                 const comments = await response.json();
@@ -274,22 +275,25 @@ window.CommentWidget = (function() {
                 if (Array.isArray(comments)) {
                     commentsArray = comments;
                 } else if (comments && comments.length !== undefined) {
-                    // Falls es ein array-ähnliches Objekt ist
                     commentsArray = Array.from(comments);
                 } else if (comments === null || comments === undefined) {
-                    // Null oder undefined -> leeres Array
                     commentsArray = [];
                 } else {
                     console.warn('Unerwartetes comments Format:', comments);
                     commentsArray = [];
                 }
                 
-                // Nur aktive Kommentare filtern
-                const activeComments = commentsArray.filter(comment => 
-                    comment && comment.active === true
-                );
+                // TEMPORÄR: Alle Kommentare anzeigen (nicht nur aktive)
+                // const activeComments = commentsArray.filter(comment => 
+                //     comment && comment.active === true
+                // );
                 
-                displayComments(activeComments, commentsContainer);
+                // Debug-Info
+                console.log('📦 Loaded comments:', commentsArray.length);
+                console.log('📦 Active comments:', commentsArray.filter(c => c.active).length);
+                console.log('📦 Inactive comments:', commentsArray.filter(c => !c.active).length);
+                
+                displayComments(commentsArray, commentsContainer);
             } else {
                 console.error('API Response Error:', response.status, response.statusText);
                 commentsContainer.innerHTML = '<div class="comments-loading">Fehler beim Laden der Kommentare (HTTP ' + response.status + ')</div>';
@@ -350,9 +354,9 @@ window.CommentWidget = (function() {
             }
 
             return `
-                <div class="comment-item">
+                <div class="comment-item" style="${comment.active ? '' : 'opacity: 0.6; border-left: 3px solid #dc3545;'}">
                     <div class="comment-header">
-                        <span class="comment-author">${escapeHtml(username)}</span>
+                        <span class="comment-author">${escapeHtml(username)} ${comment.active ? '' : '(Inaktiv)'}</span>
                         <span class="comment-date">${formattedDate}</span>
                     </div>
                     <div class="comment-text">${escapeHtml(text)}</div>
