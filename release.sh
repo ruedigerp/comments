@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# build binary releases for ink
+# build binary releases for comments
 
 build () {
   echo "building for $1 $2..."
@@ -13,7 +13,7 @@ build () {
   cd release
   if [ $1 = "linux" ]
   then
-    tar cvf - comments/* ink$suffix | gzip -9 - > comments_$1_$2.tar.gz
+    tar cvf - comments/* comments$suffix | gzip -9 - > comments_$1_$2.tar.gz
   else
     7z a -tzip -r comments_$1_$2.zip comments comments$suffix
   fi
