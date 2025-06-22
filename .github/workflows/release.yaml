@@ -2,7 +2,7 @@ name: Build artifacts & Release
 
 on:
   schedule:
-    - cron: "15 * * * *"
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
       tag_name:
