@@ -13,9 +13,10 @@ build () {
   cd release
   if [ $1 = "linux" ]
   then
-    tar cvf - templates/* static/* comments$suffix | gzip -9 - > comments_$1_$2.tar.gz
+    # Create archive with the comments directory and binary
+    tar czf comments_$1_$2.tar.gz comments/ comments$suffix
   else
-    7z a -tzip -r comments_$1_$2.zip comments comments$suffix
+    7z a -tzip -r comments_$1_$2.zip comments/ comments$suffix
   fi
   rm -rf comments$suffix
   cd ..
@@ -24,7 +25,8 @@ build () {
 rm -rf release
 mkdir -p release
 
-rsync -av templates/* static/* release/comments --delete --exclude public --exclude theme/node_modules
+# Copy templates and static files to release/comments directory
+rsync -av templates/ static/ release/comments/ --delete --exclude public --exclude theme/node_modules
 
 build linux 386
 build linux amd64
