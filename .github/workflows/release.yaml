@@ -31,7 +31,7 @@ jobs:
         name: Release Nightly
         uses: softprops/action-gh-release@v1
         with:
-          files: release/ink*
+          files: release/comments*
           prerelease: true
           tag_name: nightly
           name: Nightly build
