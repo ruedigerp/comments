@@ -16,7 +16,7 @@
 * [Docker-compose](doc/docker-compose/README.md)
 * Kuberenetes
 * Helm
-* FluxCD
+* [FluxCD Installation](docs/fluxcd/)
 
 * [API Docs](docs/api/README.md)
 
