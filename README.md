@@ -13,9 +13,9 @@
 # Dokumentation und Installation
 
 * [Install doc](docs/README.md)
-* [Docker-compose](doc/docker-compose/README.md)
+* [Docker-compose](docs/docker-compose/README.md)
 * Kuberenetes
-* Helm
+* [helm](docs/helm/README.md)
 * [FluxCD Installation](docs/fluxcd/)
 
 * [API Docs](docs/api/README.md)
