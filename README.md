@@ -11,3 +11,9 @@
 
 
 
+* [Install doc](docs/README.md)
+* [Docker-compose](doc/docker-compose/README.md)
+* Kuberenetes
+* Helm
+* FluxCD
+

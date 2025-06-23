@@ -143,5 +143,5 @@ Beim nächsten Start auf "Erlauben" klicken, mit Password oder Fingerprint freig
 
 # docker-compose
 
-Die Docker docker-compose.yaml, Start-, Stop-, Test- und weitere Scripte sind unter [docker-compose](docker-compose/) abgelegt. 
+Die Docker docker-compose.yaml, Start-, Stop-, Test- und weitere Scripte sind unter [docker-compose](docker-compose/README.md) abgelegt. 
 
