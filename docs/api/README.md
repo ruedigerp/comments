@@ -3,7 +3,7 @@
 ## 🌐 Base URL
 
 ```
-https://comments.kuepper.nrw
+https://comments.example.com
 ```
 
 ## 📋 Table of Contents
@@ -47,7 +47,7 @@ Content-Type: application/json
 **Example:**
 
 ```bash
-curl -X POST "https://comments.kuepper.nrw/api/comments" \
+curl -X POST "https://comments.example.com/api/comments" \
   -H "Content-Type: application/json" \
   -d '{
     "post_id": "2025-06-19-git-merge-script",
@@ -91,19 +91,19 @@ GET /api/comments
 **Get all active comments:**
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments"
+curl "https://comments.example.com/api/comments"
 ```
 
 **Get comments for specific post:**
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments?post_id=2025-06-19-git-merge-script"
+curl "https://comments.example.com/api/comments?post_id=2025-06-19-git-merge-script"
 ```
 
 **Get all comments including inactive:**
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments?include_inactive=true"
+curl "https://comments.example.com/api/comments?include_inactive=true"
 ```
 
 **Response (200 OK):**
@@ -139,7 +139,7 @@ GET /api/comments/{id}
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments/42"
+curl "https://comments.example.com/api/comments/42"
 ```
 
 **Response (200 OK):**
@@ -193,13 +193,13 @@ Content-Type: application/json
 
 ```bash
 # Activate comment
-curl -X PUT "https://comments.kuepper.nrw/api/comments/42/status" \
+curl -X PUT "https://comments.example.com/api/comments/42/status" \
   -H "Authorization: Bearer your-admin-token" \
   -H "Content-Type: application/json" \
   -d '{"active": true}'
 
 # Deactivate comment
-curl -X PUT "https://comments.kuepper.nrw/api/comments/42/status" \
+curl -X PUT "https://comments.example.com/api/comments/42/status" \
   -H "Authorization: Bearer your-admin-token" \
   -H "Content-Type: application/json" \
   -d '{"active": false}'
@@ -236,7 +236,7 @@ Authorization: Bearer {admin_token}
 **Example:**
 
 ```bash
-curl -X DELETE "https://comments.kuepper.nrw/api/comments/42" \
+curl -X DELETE "https://comments.example.com/api/comments/42" \
   -H "Authorization: Bearer your-admin-token"
 ```
 
@@ -267,7 +267,7 @@ Authorization: Bearer {admin_token}
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments/admin/info" \
+curl "https://comments.example.com/api/comments/admin/info" \
   -H "Authorization: Bearer your-admin-token"
 ```
 
@@ -315,13 +315,13 @@ Access-Control-Allow-Origin: *
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/js/comment-widget.js"
+curl "https://comments.example.com/js/comment-widget.js"
 ```
 
 **Usage in HTML:**
 
 ```html
-<script src="https://comments.kuepper.nrw/js/comment-widget.js"></script>
+<script src="https://comments.example.com/js/comment-widget.js"></script>
 <div data-comment-post-id="your-post-id"></div>
 ```
 
@@ -338,7 +338,7 @@ GET /css/{filename}.css
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/css/comment-widget.css"
+curl "https://comments.example.com/css/comment-widget.css"
 ```
 
 -----
@@ -354,7 +354,7 @@ GET /static/{path}
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/static/images/logo.png"
+curl "https://comments.example.com/static/images/logo.png"
 ```
 
 -----
@@ -372,7 +372,7 @@ GET /health
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/health"
+curl "https://comments.example.com/health"
 ```
 
 **Response (200 OK):**
@@ -420,7 +420,7 @@ GET /health/live
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/health/live"
+curl "https://comments.example.com/health/live"
 ```
 
 **Response (200 OK):**
@@ -445,7 +445,7 @@ GET /health/ready
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/health/ready"
+curl "https://comments.example.com/health/ready"
 ```
 
 **Response (200 OK if ready, 503 if not):**
@@ -469,7 +469,7 @@ GET /metrics
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/metrics"
+curl "https://comments.example.com/metrics"
 ```
 
 **Response (200 OK):**
@@ -503,7 +503,7 @@ GET /
 **Example:**
 
 ```bash
-curl "https://comments.kuepper.nrw/"
+curl "https://comments.example.com/"
 ```
 
 -----
@@ -527,10 +527,10 @@ GET /admin/
 
 ```bash
 # Open in browser
-https://comments.kuepper.nrw/admin
+https://comments.example.com/admin
 
 # With auto-login
-https://comments.kuepper.nrw/admin?token=your-admin-token
+https://comments.example.com/admin?token=your-admin-token
 ```
 
 -----
@@ -545,20 +545,20 @@ Admin endpoints require authentication using one of these methods:
 
 ```bash
 curl -H "Authorization: Bearer your-admin-token" \
-  "https://comments.kuepper.nrw/api/comments/admin/info"
+  "https://comments.example.com/api/comments/admin/info"
 ```
 
 #### 2. Custom X-Admin-Token Header
 
 ```bash
 curl -H "X-Admin-Token: your-admin-token" \
-  "https://comments.kuepper.nrw/api/comments/admin/info"
+  "https://comments.example.com/api/comments/admin/info"
 ```
 
 #### 3. Query Parameter (Less Secure)
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments/admin/info?token=your-admin-token"
+curl "https://comments.example.com/api/comments/admin/info?token=your-admin-token"
 ```
 
 ### Token Management
@@ -595,7 +595,7 @@ curl "https://comments.kuepper.nrw/api/comments/admin/info?token=your-admin-toke
 #### 400 Bad Request
 
 ```bash
-curl -X POST "https://comments.kuepper.nrw/api/comments" \
+curl -X POST "https://comments.example.com/api/comments" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -610,7 +610,7 @@ Alle Felder sind erforderlich
 #### 401 Unauthorized
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments/admin/info"
+curl "https://comments.example.com/api/comments/admin/info"
 ```
 
 **Response:**
@@ -625,7 +625,7 @@ curl "https://comments.kuepper.nrw/api/comments/admin/info"
 #### 404 Not Found
 
 ```bash
-curl "https://comments.kuepper.nrw/api/comments/99999"
+curl "https://comments.example.com/api/comments/99999"
 ```
 
 **Response:**
@@ -643,7 +643,7 @@ Kommentar nicht gefunden
 
 ```bash
 #!/bin/bash
-API_BASE="https://comments.kuepper.nrw"
+API_BASE="https://comments.example.com"
 ADMIN_TOKEN="your-admin-token"
 
 echo "🧪 Testing Comment API Workflow"
@@ -703,7 +703,7 @@ echo "✅ Test workflow completed!"
 ```bash
 # Load test - create multiple comments
 for i in {1..10}; do
-  curl -s -X POST "https://comments.kuepper.nrw/api/comments" \
+  curl -s -X POST "https://comments.example.com/api/comments" \
     -H "Content-Type: application/json" \
     -d "{
       \"post_id\": \"load-test\",
@@ -715,7 +715,7 @@ done
 wait
 
 # Check results
-curl -s "https://comments.kuepper.nrw/api/comments?post_id=load-test" | jq length
+curl -s "https://comments.example.com/api/comments?post_id=load-test" | jq length
 ```
 
 -----
