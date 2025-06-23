@@ -8,5 +8,6 @@
 # Docker builds 
 
 * Main: [![(prod) Build, Package, Release](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml/badge.svg)](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml)
-* Stage: [![(stage) Build, Package, Release](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml/badge.svg)](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml)
-* Dev: [![(dev) Build, Package, Release](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml/badge.svg)](https://github.com/ruedigerp/comments/actions/workflows/build-prod.yaml)
+
+
+
