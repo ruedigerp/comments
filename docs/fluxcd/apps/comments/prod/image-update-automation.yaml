@@ -1,0 +1,33 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageUpdateAutomation
+metadata:
+  name: comments-automation
+  namespace: comments  # Gleicher Namespace
+spec:
+  sourceRef:
+    kind: GitRepository
+    name: flux-system-write
+    namespace: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: |
+        Automated image update
+        
+        Automation name: {{ .AutomationObject }}
+        
+        Images:
+        {{- range .Updated.Images }}
+        - {{.}}
+        {{- end }}
+    push:
+      branch: main
+  interval: 1m
+  update:
+    path: "./apps/comments/prod"  # Anpassen an deinen Pfad
+    strategy: Setters

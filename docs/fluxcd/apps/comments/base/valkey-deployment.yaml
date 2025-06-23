@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey
+  namespace: comments
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      containers:
+      - name: valkey
+        image: docker.io/valkey/valkey:alpine3.22
+        args:
+          - valkey-server
+          - --save
+          - "900 1 300 10 60 10000"  # RDB Snapshots
+          - --appendonly
+          - "yes"                    # AOF aktivieren
+          - --appendfsync
+          - "everysec"
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "25m"
+        volumeMounts:
+          - mountPath: /data
+            name: valkey
+      volumes:
+        - name: valkey
+          persistentVolumeClaim:
+            claimName: valkey-claim

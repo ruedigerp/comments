@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: comments-cm
+data:
+  REDIS_ADDR: "valkey.comments.svc.cluster.local:6379"
+  REDIS_DB: "0"
+  PORT: "8080"
+  AUTH_ENABLED: "true"
+  PUBLIC_API_URL: "https://comments.kuepper.nrw"
+  DOMAIN: "https://comments.kuepper.nrw"
+  # database-url: "postgresql://localhost:5432/mydb"
+  # api-key: "abc123"
+  # debug-mode: "true"

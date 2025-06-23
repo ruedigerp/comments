@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commentsapp
+  namespace: comments
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commentsapp
+  template:
+    metadata:
+      labels:
+        app: commentsapp
+    spec:
+      containers:
+      - env:
+        - name: ADMIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: comments-secret
+              key: ADMIN_TOKEN
+        - name: REDIS_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: REDIS_ADDR
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: comments-secret
+              key: REDIS_PASSWORD
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: REDIS_DB
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: PORT
+        - name: AUTH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: AUTH_ENABLED
+        - name: PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: PUBLIC_API_URL
+        - name: DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: comments-cm
+              key: DOMAIN
+        name: commentsapp
+        image: ghcr.io/ruedigerp/comments:v0.0.8
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "25m"

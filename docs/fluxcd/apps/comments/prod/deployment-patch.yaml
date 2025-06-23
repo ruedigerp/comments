@@ -1,0 +1,12 @@
+# apps/blog/stage/deployment-patch.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commentsapp
+  namespace: comments
+spec:
+  template:
+    spec:
+      containers:
+      - name: commentsapp
+        image: ghcr.io/ruedigerp/comments:v1.0.7 # {"$imagepolicy": "comments:append-policy"}

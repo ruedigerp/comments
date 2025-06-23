@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comments
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: ${middlewares}
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ${ingress_host}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: comments
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - ${ingress_host}
+      secretName: ${tls_secret_name}

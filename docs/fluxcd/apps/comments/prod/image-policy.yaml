@@ -1,0 +1,14 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: comments-policy
+  namespace: comments  # Gleicher Namespace
+spec:
+  imageRepositoryRef:
+    name: append-repo  # Muss mit ImageRepository.name übereinstimmen
+  policy:
+    alphabetical:
+      order: asc
+  filterTags:
+    pattern: '^v(?P<ts>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)$'  # Beachte das 'v' am Anfang
+    extract: '$ts.$minor.$patch'

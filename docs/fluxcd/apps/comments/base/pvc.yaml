@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: valkey-claim
+  namespace: comments
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "nfs-client"  # Für statische Bindung
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      type: nfs
+      app: valkey

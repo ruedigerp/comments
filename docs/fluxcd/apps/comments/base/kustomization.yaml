@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - valkey-deployment.yaml
+  - service.yaml
+  - pv.yaml
+  - pvc.yaml
+  - comments-deployment.yaml
+  - comments-service.yaml
+  - comments-ingress.yaml
+  - comments-secret.yaml
+  - comments-configmap.yaml
+
+namespace: comments

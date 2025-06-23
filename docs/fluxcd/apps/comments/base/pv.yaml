@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: valkey-pv
+  labels:
+    type: nfs
+    app: valkey
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: "nfs-client"  # Für statische Bindung
+  nfs:
+    server: 10.0.10.7  # Ihre NFS-Server IP hier eintragen
+    path: /srv/nfs/k8s-pv/stage/comments-valkey  # Pfad zu existierenden Daten
+  claimRef:
+    namespace: comments
+    name: valkey-claim

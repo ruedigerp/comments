@@ -1,0 +1,9 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: comments-repo  
+  namespace: comments 
+spec:
+  image: ghcr.io/ruedigerp/comments
+  interval: 1m
+  provider: generic
