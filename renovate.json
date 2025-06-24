@@ -12,12 +12,15 @@
     {
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["patch"],
-      "automerge": true
+      "automerge": false,
+      "reviewers": ["ruedigerp"]
+
     },
     {
       "matchManagers": ["gomod"],
       "matchPackagePatterns": ["^k8s.io/"],
-      "groupName": "kubernetes packages"
+      "groupName": "kubernetes packages",
+      "reviewers": ["ruedigerp"]
     }
   ],
   "vulnerabilityAlerts": {
