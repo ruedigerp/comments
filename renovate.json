@@ -7,20 +7,33 @@
     ":automergeDigest",
     ":automergePatch"
   ],
-  "postUpdateOptions": ["gomodTidy"],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchUpdateTypes": ["patch"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": false,
-      "reviewers": ["ruedigerp"]
-
+      "reviewers": [
+        "ruedigerp"
+      ]
     },
     {
-      "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^k8s.io/"],
+      "matchManagers": [
+        "gomod"
+      ],
       "groupName": "kubernetes packages",
-      "reviewers": ["ruedigerp"]
+      "reviewers": [
+        "ruedigerp"
+      ],
+      "matchPackageNames": [
+        "/^k8s.io//"
+      ]
     }
   ],
   "vulnerabilityAlerts": {
