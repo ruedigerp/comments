@@ -9,7 +9,8 @@ WORKDIR /app
 
 # Go Module Cache für bessere Layer-Caching
 COPY go.mod go.sum ./
-RUN go mod download
+# RUN go mod download
+RUN go mod tidy
 
 # Source Code kopieren
 COPY . .
